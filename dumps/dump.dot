@@ -1,0 +1,13 @@
+graph
+{
+  rankdir=LR;
+    node_1[shape = Mrecord, label = "1"];
+    node_2[shape = Mrecord, label = "2"];
+    node_3[shape = Mrecord, label = "3"];
+    node_4[shape = Mrecord, label = "4"];
+    node_1--node_2;
+    node_1--node_3;
+    node_2--node_3;
+    node_2--node_4;
+    node_3--node_4;
+}
