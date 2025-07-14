@@ -1,13 +1,15 @@
 graph
 {
   rankdir=LR;
-    node_1[shape = Mrecord, label = "1"];
-    node_2[shape = Mrecord, label = "2"];
-    node_3[shape = Mrecord, label = "3"];
-    node_4[shape = Mrecord, label = "4"];
-    node_1--node_2;
-    node_1--node_3;
-    node_2--node_3;
-    node_2--node_4;
-    node_3--node_4;
+    node_a[shape = Mrecord, label = "a"];
+    node_b[shape = Mrecord, label = "b"];
+    node_c[shape = Mrecord, label = "c"];
+    node_d[shape = Mrecord, label = "d"];
+    node_hello[shape = Mrecord, label = "hello"];
+    node_a--node_b;
+    node_a--node_c;
+    node_b--node_c;
+    node_b--node_d;
+    node_c--node_d;
+    node_d--node_hello;
 }

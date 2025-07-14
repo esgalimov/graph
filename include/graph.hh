@@ -22,13 +22,13 @@ namespace graph {
     constexpr int EMPTY = -1;
     constexpr int ALIGNMENT = 6;
 
-    using Stack = typename std::stack<int>;
-    using Queue = typename std::queue<int>;
     using VecInt = typename std::vector<int>;
     using VecStr = typename std::queue<std::string>;
 
-    template <typename T>
-        concept AllowedContainer = std::same_as<T, Stack> || std::same_as<T, Queue>;
+    template <typename Cont>
+        concept AllowedContainer = 
+            std::same_as<Cont, std::stack<typename Cont::value_type>> || 
+            std::same_as<Cont, std::queue<typename Cont::value_type>>;
 
     // TODO: graphviz dumps
     //       gtest
@@ -36,9 +36,9 @@ namespace graph {
     //       graph traversals
     //       think about additional info of graph nodes
 
-    class graph_buffer_t {
+    template <typename T> class graph_buffer_t {
     protected:
-        VecInt edges_;
+        std::vector<T> edges_;
         VecInt next_; // node's edges list
         VecInt prev_;
 
@@ -53,18 +53,22 @@ namespace graph {
         }
     };
 
-    class graph_t : private graph_buffer_t {
-        using graph_buffer_t::edges_;
-        using graph_buffer_t::next_;
-        using graph_buffer_t::prev_;
+    template <typename T>
+    class graph_t final : private graph_buffer_t<T> {
+        using graph_buffer_t<T>::edges_;
+        using graph_buffer_t<T>::next_;
+        using graph_buffer_t<T>::prev_;
 
-        using graph_buffer_t::size_;
+        using graph_buffer_t<T>::size_;
 
-        using edge_t = std::pair<int, int>;
+        using edge_t = std::pair<T, T>;
+        using VecT = typename std::vector<T>;
+        using Stack = typename std::stack<T>;
+        using Queue = typename std::queue<T>;
 
         std::set<edge_t> edges_set;
-        std::map<int, std::set<int>> nodes_pos_map;
-        std::map<int, int>           nodes_names_id;
+        std::map<T, std::set<int>> nodes_pos_map;
+        std::map<T, int>           nodes_names_id;
         int empty_part_size = 0;
 
         int edges_cnt = 0;
@@ -76,7 +80,7 @@ namespace graph {
         }
 
         void fill_edges() {
-            edges_.resize(empty_part_size, EMPTY);
+            edges_.resize(empty_part_size, T{});
 
             for (auto&& ed: edges_set) {
                 edges_.push_back(ed.first); 
@@ -122,27 +126,27 @@ namespace graph {
             fill_node_edge_list();
         }
 
-        template <AllowedContainer T> VecInt fs(int start_node_name) {
-            T search_stk;
+        template <AllowedContainer Cont> VecT fs(T start_node_name) {
+            Cont search_stk;
 
             std::vector<bool> used(nodes_cnt, false);
-            VecInt  result_fs;
+            VecT  result_fs;
 
             used[nodes_names_id[start_node_name]] = true;
 
             search_stk.push(start_node_name);
 
             while (!search_stk.empty()) {
-                int top = 0;
+                T top;
 
-                if constexpr (std::same_as<T, Stack>) top = search_stk.top();
-                else                                  top = search_stk.front();
+                if constexpr (std::same_as<Cont, Stack>) top = search_stk.top();
+                else                                     top = search_stk.front();
 
                 search_stk.pop();
 
                 result_fs.push_back(top);
 
-                VecInt neighbors = get_neighbors(top);
+                VecT neighbors = get_neighbors(top);
 
                 for (auto&& x: neighbors) {
                     if (!used[nodes_names_id[x]]) {
@@ -163,7 +167,7 @@ namespace graph {
             
             empty_part_size = (nodes_pos_map.size() % 2) ? nodes_pos_map.size() + 1 : nodes_pos_map.size();
 
-            init(edges_set.size() * 2 + empty_part_size);
+            this->init(edges_set.size() * 2 + empty_part_size);
 
             fill_table();
 
@@ -171,12 +175,12 @@ namespace graph {
             nodes_cnt = nodes_pos_map.size();
         } 
 
-        VecInt dfs(int start_node_name) { return fs<Stack>(start_node_name); }
+        VecT dfs(T start_node_name) { return fs<Stack>(start_node_name); }
 
-        VecInt bfs(int start_node_name) { return fs<Queue>(start_node_name); }
+        VecT bfs(T start_node_name) { return fs<Queue>(start_node_name); }
 
-        VecInt get_neighbors(int start_node_name) {
-            VecInt ret;
+        VecT get_neighbors(T start_node_name) {
+            VecT ret;
 
             int start_list_index = nodes_names_id[start_node_name];
             int i = next_[start_list_index];
@@ -209,7 +213,8 @@ namespace graph {
                 std::cout << std::endl;
             }
         }
-    
+
+// ---------------------- graphviz dumps ----------------------
     private:
 
     int open_grapviz(std::ofstream& out, std::string& dot_pth) const {
@@ -229,7 +234,6 @@ namespace graph {
     }
 
     public:
-// ---------------------- graphviz dumps ----------------------
 
     void graphviz_dump() {
         namespace fs = std::filesystem;
@@ -241,11 +245,12 @@ namespace graph {
         std::ofstream out;
         open_grapviz(out, dot_pth);
 
-        for (int i = 0; i < empty_part_size; ++i) {
+        for (int i = 0; i < nodes_cnt; ++i) {
             out << "    node_" << edges_[i] << "[shape = Mrecord, label = \"" << edges_[i] << "\"];\n";
         }
 
         for (int i = empty_part_size; i < size_; i = 1 + (i ^ 1)) {
+
             out << "    node_" << edges_[i] << "--" << "node_" << edges_[i ^ 1] << ";\n";
         }
 
